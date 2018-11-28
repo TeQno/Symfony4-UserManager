@@ -7,7 +7,10 @@
 <form method="post">
     {% if error %}
         <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+    {% elseif message %}
+        <div class="alert alert-success">{{ message }}</div>
     {% endif %}
+
 
     <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
 
@@ -38,7 +41,7 @@
         </label>
     </div>
 
-    <button class="btn btn-lg btn-primary" type="submit">
+    <button class="btn btn-primary" type="submit">
         Sign in
     </button>
 </form>

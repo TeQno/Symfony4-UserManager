@@ -34,7 +34,10 @@ class SecurityAuthenticator extends AbstractFormLoginAuthenticator
     private $csrfTokenManager;
     private $passwordEncoder;
 
-    public function __construct(EntityManagerInterface $entityManager, RouterInterface $router, CsrfTokenManagerInterface $csrfTokenManager, UserPasswordEncoderInterface $passwordEncoder)
+    public function __construct(EntityManagerInterface $entityManager,
+                                RouterInterface $router,
+                                CsrfTokenManagerInterface $csrfTokenManager,
+                                UserPasswordEncoderInterface $passwordEncoder)
     {
         $this->entityManager = $entityManager;
         $this->router = $router;
@@ -63,7 +66,8 @@ class SecurityAuthenticator extends AbstractFormLoginAuthenticator
         return $credentials;
     }
 
-    public function getUser($credentials, UserProviderInterface $userProvider)
+    public function getUser($credentials,
+                            UserProviderInterface $userProvider)
     {
         $token = new CsrfToken('authenticate', $credentials['csrf_token']);
         if (!$this->csrfTokenManager->isTokenValid($token)) {
@@ -85,7 +89,8 @@ class SecurityAuthenticator extends AbstractFormLoginAuthenticator
         return $user;
     }
 
-    public function checkCredentials($credentials, UserInterface $user)
+    public function checkCredentials($credentials,
+                                     UserInterface $user)
     {
         return $this->passwordEncoder->isPasswordValid($user, $credentials['password']);
     }

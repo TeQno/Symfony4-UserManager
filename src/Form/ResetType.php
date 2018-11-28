@@ -31,7 +31,12 @@ class ResetType extends AbstractType
                     'label' => 'Repeat Password'
                 ]
             ])
-            ->add('submit', SubmitType::class);
+            ->add('submit', SubmitType::class, [
+                'label' => 'Modifier !',
+                'attr' => [
+                    'class' => 'btn btn-primary',
+                ]
+            ]);
     }
 
     /**

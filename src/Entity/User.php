@@ -2,11 +2,16 @@
 
 namespace App\Entity;
 
+use Symfony\Component\Validator\Constraints as Assert;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\UserRepository")
+ * @UniqueEntity(fields="email",
+ *               errorPath="email",
+ *               message="Cette adresse email est déja utilisée.")
  */
 class User implements UserInterface
 {
@@ -18,7 +23,13 @@ class User implements UserInterface
     private $id;
 
     /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $uuid;
+
+    /**
      * @ORM\Column(type="string", length=180, unique=true)
+     * @Assert\Email
      */
     private $email;
 
@@ -64,6 +75,25 @@ class User implements UserInterface
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getUuid(): ?string
+    {
+        return $this->uuid;
+    }
+
+    /**
+     * @param string $uuid
+     * @return User
+     */
+    public function setUuid(string $uuid): self
+    {
+        $this->uuid = $uuid;
+
+        return $this;
     }
 
     /**
@@ -241,6 +271,4 @@ class User implements UserInterface
 
         return $this;
     }
-
-
 }

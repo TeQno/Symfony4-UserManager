@@ -14,7 +14,7 @@ use App\Form\ResetType;
 use App\Form\UserType;
 use App\Security\SecurityMailer;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -22,7 +22,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
-class SecurityController extends AbstractController
+class SecurityController extends Controller
 {
 
 
@@ -34,19 +34,27 @@ class SecurityController extends AbstractController
     /**
      * @Route("/login", name="login")
      *
+     * @param Request $request
      * @param AuthenticationUtils $authenticationUtils
      * @return Response
      */
-    public function login(AuthenticationUtils $authenticationUtils): Response
+    public function login(Request $request,
+                          AuthenticationUtils $authenticationUtils): Response
     {
         // get the login error if there is one
         $error = $authenticationUtils->getLastAuthenticationError();
         // last username entered by the user
         $lastUsername = $authenticationUtils->getLastUsername();
 
+        $message = null;
+        if ($request->query->get('registered')) {
+            $message = 'Veuillez confirmer votre adresse mail.';
+        }
+
         return $this->render('security/login.html.twig', [
             'last_username' => $lastUsername,
-            'error' => $error
+            'error' => $error,
+            'message' => $message
         ]);
     }
 
@@ -70,21 +78,28 @@ class SecurityController extends AbstractController
      * @param UserPasswordEncoderInterface $passwordEncoder
      * @param SecurityMailer $securityMailer
      * @return \Symfony\Component\HttpFoundation\RedirectResponse|Response
+     * @throws \Twig_Error_Loader
+     * @throws \Twig_Error_Runtime
+     * @throws \Twig_Error_Syntax
      */
-    public function register(Request $request, UserPasswordEncoderInterface $passwordEncoder, SecurityMailer $securityMailer)
+    public function register(Request $request,
+                             UserPasswordEncoderInterface $passwordEncoder,
+                             SecurityMailer $securityMailer)
     {
+        $entityManager = $this->getDoctrine()->getManager();
+
         $user = new User();
         $form = $this->createForm(UserType::class, $user);
 
         $form->handleRequest($request);
+
         if ($form->isSubmitted() && $form->isValid()) {
 
             $password = $passwordEncoder->encodePassword($user, $user->getPassword());
-            $token = $this->uuidGeneration();
+            $token = $this->container->get('app.uuidhelper')->uuidGeneration();
             $user->setPassword($password)
                 ->setEmailConfirmation($token);
 
-            $entityManager = $this->getDoctrine()->getManager();
             $entityManager->persist($user);
             $entityManager->flush();
 
@@ -93,22 +108,21 @@ class SecurityController extends AbstractController
                     ['token' => $token],
                     UrlGeneratorInterface::ABSOLUTE_URL));
 
-            // TODO: Rediriger vers notification d'envoi de mail
-            return $this->redirectToRoute('dashboard');
+            return $this->redirectToRoute('login', ['registered' => true]);
         }
 
         return $this->render('security/register.html.twig', [
-            'form' => $form->createView()
+            'form' => $form->createView(),
         ]);
     }
 
     /**
      * @Route("/email_confirmation", name="email_confirmation")
-     *
      * @param Request $request
      * @return Response
      */
-    public function emailConfirmation(Request $request) {
+    public function emailConfirmation(Request $request): Response
+    {
 
         $entityManager = $this->getDoctrine()->getManager();
         $token = $request->query->get('token');
@@ -144,7 +158,8 @@ class SecurityController extends AbstractController
      * @throws \Twig_Error_Runtime
      * @throws \Twig_Error_Syntax
      */
-    public function resetPassword(Request $request, SecurityMailer $securityMailer)
+    public function resetPassword(Request $request,
+                                  SecurityMailer $securityMailer)
     {
         $entityManager = $this->getDoctrine()->getManager();
         $form = $this->createForm(EmailResetType::class);
@@ -153,15 +168,19 @@ class SecurityController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $user = $entityManager->getRepository(User::class)->findOneByEmail($form->getData()['email']);
             if ($user !== null) {
-                $token = $this->uuidGeneration();
+                $token = $this->container->get('app.uuidhelper')->uuidGeneration();
                 $user->setResetPassword($token);
                 $entityManager->persist($user);
                 $entityManager->flush();
 
-                $securityMailer->sendResetPasswordMail($user->getEmail(), $this->generateUrl('reset_password', ['token' => $token], UrlGeneratorInterface::ABSOLUTE_URL));
+                $securityMailer->sendResetPasswordMail($user->getEmail(),
+                    $this->generateUrl('reset_password',
+                        ['token' => $token],
+                        UrlGeneratorInterface::ABSOLUTE_URL));
 
                 return $this->redirectToRoute('reset_password_email_send');
             }
+            throw $this->createNotFoundException('Email not found.');
         }
 
         return $this->render('password/reset-password.html.twig', [
@@ -185,7 +204,8 @@ class SecurityController extends AbstractController
      * @param UserPasswordEncoderInterface $encoder
      * @return \Symfony\Component\HttpFoundation\RedirectResponse|Response
      */
-    public function resetPasswordToken(Request $request, UserPasswordEncoderInterface $encoder)
+    public function resetPasswordToken(Request $request,
+                                       UserPasswordEncoderInterface $encoder)
     {
         $token = $request->query->get('token');
         if ($token !== null) {
@@ -222,7 +242,9 @@ class SecurityController extends AbstractController
      * @param UserPasswordEncoderInterface $encoder
      * @return \Symfony\Component\HttpFoundation\RedirectResponse|Response
      */
-    public function changePassword(Request $request, UserPasswordEncoderInterface $encoder) {
+    public function changePassword(Request $request,
+                                   UserPasswordEncoderInterface $encoder)
+    {
         $entityManager = $this->getDoctrine()->getManager();
         $user = $this->getUser();
 
@@ -238,43 +260,11 @@ class SecurityController extends AbstractController
              $entityManager->persist($user);
              $entityManager->flush();
 
-             return $this->redirectToRoute('login');
+             return $this->redirectToRoute('home');
          }
 
          return $this->render('password/change-password.html.twig', [
              'form' => $form->createView(),
          ]);
-    }
-
-
-
-
-    /***********************/
-    /*       PRIVATE       */
-    /***********************/
-
-    /**
-     * @return string
-     */
-    private function uuidGeneration() {
-        return sprintf( '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            // 32 bits for "time_low"
-            mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
-
-            // 16 bits for "time_mid"
-            mt_rand( 0, 0xffff ),
-
-            // 16 bits for "time_hi_and_version",
-            // four most significant bits holds version number 4
-            mt_rand( 0, 0x0fff ) | 0x4000,
-
-            // 16 bits, 8 bits for "clk_seq_hi_res",
-            // 8 bits for "clk_seq_low",
-            // two most significant bits holds zero and one for variant DCE1.1
-            mt_rand( 0, 0x3fff ) | 0x8000,
-
-            // 48 bits for "node"
-            mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
-        );
     }
 }

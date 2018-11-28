@@ -56,6 +56,13 @@ class SecurityMailer
         $this->mailer->send($message);
     }
 
+    /**
+     * @param $targetEmail
+     * @param $tokenUrl
+     * @throws \Twig_Error_Loader
+     * @throws \Twig_Error_Runtime
+     * @throws \Twig_Error_Syntax
+     */
     public function sendEmailConfirmation($targetEmail, $tokenUrl) {
 
         $message = (new \Swift_Message('Confirmer votre adresse mail'))

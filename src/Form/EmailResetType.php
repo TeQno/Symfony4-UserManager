@@ -21,7 +21,12 @@ class EmailResetType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder->add('email')
-            ->add('submit', SubmitType::class)
+            ->add('submit', SubmitType::class, [
+                'label' => 'Réinitialiser mon mot de passe !',
+                'attr' => [
+                    'class' => 'btn btn-primary',
+                ]
+            ])
         ;
     }
 

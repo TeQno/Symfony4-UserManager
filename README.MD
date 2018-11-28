@@ -1,16 +1,16 @@
 
 # Symfony 4 user manager
 
-#### .env
+### .env
 
-**Mailer et base de données requises**
+*Mailer et base de données requises*
 
 ```
 MAILER_URL=smtp://localhost:1025
 DATABASE_URL=mysql://root:root@127.0.0.1:3306/db_test
 ```
 
-#### composer.json
+### composer.json
 
 ```
 "require": {
@@ -43,7 +43,7 @@ DATABASE_URL=mysql://root:root@127.0.0.1:3306/db_test
 }
 ```
 
-#### security.yaml
+### security.yaml
 
 ```
 security:
